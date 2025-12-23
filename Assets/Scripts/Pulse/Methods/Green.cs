@@ -1,16 +1,10 @@
 using UnityEngine;
 
-public class Green : MonoBehaviour
+public class Green : MethodBase
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    protected override double[][] ExtractPulseSignal(double[][] rgbSignals)
     {
-        
+        return new double[][] { rgbSignals[1] };
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 }

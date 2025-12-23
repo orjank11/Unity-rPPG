@@ -3,8 +3,8 @@ using Unity.InferenceEngine;
 
 namespace Neural
 {
-    [CreateAssetMenu(fileName = "UltraFace",
-        menuName = "ScriptableObjects/UltraFace Resource Set")]
+    [CreateAssetMenu(fileName = "Neural",
+        menuName = "ScriptableObjects/Neural Resource Set")]
     public sealed class ResourceSet : ScriptableObject
     {
         public ModelAsset model;

@@ -1,0 +1,16 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/Ui/Stylesheets/Styles.uss?fileID=7433441132597879392&amp;guid=c096fbb56c04f49b387d65122f268e2f&amp;type=3#Styles"/>
+    <ui:VisualElement name="Wrapper" style="flex-grow: 1;">
+        <ui:Image name="WebcamImage" class="main-webcamera" style="height: 450px; width: 589px;"/>
+        <ui:VisualElement name="Menu" style="flex-grow: 1; right: 25px; top: 25px; bottom: 25px; position: absolute; width: 320px; background-color: rgba(0, 0, 0, 0.39); border-top-left-radius: 16px; border-top-right-radius: 16px; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; padding-left: 24px; padding-top: 24px; padding-bottom: 24px; padding-right: 24px;">
+            <ui:Label text="Region of Interest" name="RoiText" class="color-white" style="-unity-font-definition: url(&quot;project://database/Library/unity%20default%20resources?fileID=10102&amp;guid=0000000000000000e000000000000000&amp;type=0#LegacyRuntime&quot;);"/>
+            <ui:Image uv="100,100,100,100" scale-mode="StretchToFill" name="RoiImage" class="roi-result" style="position: relative; right: 0; top: 0; width: 180px; height: 120px;"/>
+            <ui:Label text="Green" name="GreenLabel" class="color-white" style="-unity-font-definition: url(&quot;project://database/Library/unity%20default%20resources?fileID=10102&amp;guid=0000000000000000e000000000000000&amp;type=0#LegacyRuntime&quot;);"/>
+            <ui:Label text="Loading..." name="GreenResult" class="text-result color-white" style="-unity-font-definition: url(&quot;project://database/Library/unity%20default%20resources?fileID=10102&amp;guid=0000000000000000e000000000000000&amp;type=0#LegacyRuntime&quot;);"/>
+            <ui:Label text="Chrom" name="ChromLabel" class="color-white" style="-unity-font-definition: url(&quot;project://database/Library/unity%20default%20resources?fileID=10102&amp;guid=0000000000000000e000000000000000&amp;type=0#LegacyRuntime&quot;);"/>
+            <ui:Label text="Loading..." name="ChromResult" class="text-result color-white" style="-unity-font-definition: url(&quot;project://database/Library/unity%20default%20resources?fileID=10102&amp;guid=0000000000000000e000000000000000&amp;type=0#LegacyRuntime&quot;);"/>
+            <ui:Label text="Pos" name="PosLabel" class="color-white" style="-unity-font-definition: url(&quot;project://database/Library/unity%20default%20resources?fileID=10102&amp;guid=0000000000000000e000000000000000&amp;type=0#LegacyRuntime&quot;);"/>
+            <ui:Label text="Loading..." name="PosResult" class="text-result color-white"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

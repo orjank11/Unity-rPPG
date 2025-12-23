@@ -1,16 +1,31 @@
 using UnityEngine;
 
-public class Chrom : MonoBehaviour
+public class Chrom : MethodBase
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    protected override double[][] ExtractPulseSignal(double[][] rgbSignals)
     {
+        int signalLength = rgbSignals[0].Length;
+    
+        double[] Xcomp = new double[signalLength];
+        double[] Ycomp = new double[signalLength];
+    
+        for (int i = 0; i < signalLength; i++)
+        {
+            Xcomp[i] = 3 * rgbSignals[2][i] - 2 * rgbSignals[1][i];
         
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
+            Ycomp[i] = (1.5 * rgbSignals[2][i]) + rgbSignals[1][i] - (1.5 * rgbSignals[0][i]);
+        }
+    
+        double sX = StandardDeviation(Xcomp);
+        double sY = StandardDeviation(Ycomp);
+        double alpha = sX / sY;
+    
+        double[] bvp = new double[signalLength];
+        for (int i = 0; i < signalLength; i++)
+        {
+            bvp[i] = Xcomp[i] - alpha * Ycomp[i];
+        }
+    
+        return new double[][] { bvp };
     }
 }
