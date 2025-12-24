@@ -394,8 +394,15 @@ GameObject:
   - component: {fileID: 786284267}
   - component: {fileID: 786284266}
   - component: {fileID: 786284265}
+  - component: {fileID: 786284268}
+  - component: {fileID: 786284269}
+  - component: {fileID: 786284274}
+  - component: {fileID: 786284273}
+  - component: {fileID: 786284272}
+  - component: {fileID: 786284271}
+  - component: {fileID: 786284270}
   m_Layer: 5
-  m_Name: Ui
+  m_Name: PulseDetection
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -413,6 +420,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4981a5a3ca3d34fff9b1f9471f0998ae, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Ui
+  webcam: {fileID: 786284268}
+  visualizer: {fileID: 786284269}
 --- !u!114 &786284266
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -451,6 +460,135 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &786284268
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 786284264}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54d6b9b9e5c6d4c1c977b1341a69a778, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Webcam
+  requestedDeviceName: 
+  requestedWidth: 640
+  requestedHeight: 480
+  requestedFPS: 30
+  requestedIsFrontFacing: 0
+  autoPlayAfterInitialize: 1
+  settingsFPS: 30
+  flipHorizontal: 0
+  flipVertical: 0
+  onInitialized:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 786284268}
+        m_TargetAssemblyTypeName: Webcam, Assembly-CSharp
+        m_MethodName: Play
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  onErrorOccurred:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &786284269
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 786284264}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a795fed0ab9e34639befcafc3fcfb3ea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Neural.Visualizer
+  source: {fileID: 786284268}
+  threshold: 0.5
+  resources: {fileID: 11400000, guid: e6dbf9b743c81464fb3d2e9ccbe09dc4, type: 2}
+  faceTextureSize: 256
+--- !u!114 &786284270
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 786284264}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5703a619cdf834651862c82913381ff4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Pos
+--- !u!114 &786284271
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 786284264}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1363caa3bdcd0426ab140bf039e75514, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Chrom
+--- !u!114 &786284272
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 786284264}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6fce7f888c604ecfaa577feaac114e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Green
+--- !u!114 &786284273
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 786284264}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf7938893f892446aace73c9db68d8e3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Pulse
+  lowCutoff: 1.2
+  highCutoff: 4
+  sampleRate: 30
+  lowerLimitBpm: 40
+  upperLimitBpm: 200
+  windowSize: 512
+  baseHighPulse: 100
+  currentPulse: 0
+  pulseMethods:
+  - {fileID: 786284272}
+  - {fileID: 786284271}
+  - {fileID: 786284270}
+--- !u!114 &786284274
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 786284264}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 640e0203400d149668f09673b48bb729, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Roi
+  pulse: {fileID: 786284273}
+  fps: 30
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0

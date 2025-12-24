@@ -30,25 +30,67 @@ namespace Neural {
         #region Tensor shape utilities
 
         public TensorShape InputShape
-            => new TensorShape(1, InputHeight, InputWidth, 3);
+            => new TensorShape(1, 3, InputHeight, InputWidth);
 
         #endregion
 
         #region Constructor
 
-        public Config(ResourceSet resources, Model model)
+       public Config(ResourceSet resources, Model model)
         {
+            // Get input shape
             var inShape = model.inputs[0].shape.ToIntArray();
-                // Access internal shapes dictionary
+            
+            Debug.Log($"Input shape length: {inShape.Length}, values: [{string.Join(", ", inShape)}]");
+            
             var shapesField = typeof(Model).GetField("shapes", 
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             var shapes = (Dictionary<int, DynamicTensorShape>)shapesField.GetValue(model);
             var outShape = shapes[model.outputs[0].index].ToIntArray();
-    
-            InputWidth = inShape[6];
-            InputHeight = inShape[5];
-            OutputCount = outShape[6];
+            
+            Debug.Log($"Output shape length: {outShape.Length}, values: [{string.Join(", ", outShape)}]");
+            
+            if (inShape.Length == 4)
+            {
+                if (inShape[1] == 3 || inShape[1] == 1) 
+                {
+                    InputHeight = inShape[2];
+                    InputWidth = inShape[3];
+                }
+                else
+                {
+                    InputHeight = inShape[1];
+                    InputWidth = inShape[2];
+                }
+            }
+            else
+            {
+                Debug.LogError($"Unexpected input shape length: {inShape.Length}");
+                InputHeight = 480;
+                InputWidth = 640;
+            }
+            
+            if (outShape.Length == 3)
+            {
+                OutputCount = outShape[1]; 
+            }
+            else if (outShape.Length == 4)
+            {
+                OutputCount = outShape[1] * outShape[2];
+            }
+            else if (outShape.Length == 2)
+            {
+                OutputCount = outShape[1];
+            }
+            else
+            {
+                Debug.LogError($"Unexpected output shape length: {outShape.Length}");
+                OutputCount = 17640;
+            }
+            
+            Debug.Log($"Parsed config - InputWidth: {InputWidth}, InputHeight: {InputHeight}, OutputCount: {OutputCount}");
         }
+
 
         #endregion
     }

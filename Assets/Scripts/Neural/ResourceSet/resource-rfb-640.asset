@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6e6fdf5e7a55049d693d1d1e600b655c, type: 3}
   m_Name: resource-rfb-640
   m_EditorClassIdentifier: Assembly-CSharp::Neural.ResourceSet
-  model: {fileID: 0}
-  preprocess: {fileID: 0}
-  postprocess1: {fileID: 0}
-  postprocess2: {fileID: 0}
+  model: {fileID: 5022602860645237092, guid: 9ebeba76b4ce24cefa5dceef953047dd, type: 3}
+  preprocess: {fileID: 7200000, guid: a5678a37efb8d41faaa775d34b6cc4ae, type: 3}
+  postprocess1: {fileID: 7200000, guid: 5d2d8055b7b52415a82a7fe888dffd5a, type: 3}
+  postprocess2: {fileID: 7200000, guid: 255793924d4924daeab8aa7ed2a0d838, type: 3}

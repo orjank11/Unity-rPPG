@@ -9,14 +9,17 @@ using UnityEngine;
 
 public class Pulse : MonoBehaviour
 {
-    [SerializeField] protected float lowCutoff = 1.2f; 
-    [SerializeField] protected float highCutoff = 4.0f; 
-    [SerializeField] protected float sampleRate = 30f;
-    [SerializeField] protected float lowerLimitBpm = 40.0f;
-    [SerializeField] protected float upperLimitBpm = 200.0f;
-    [SerializeField] protected int windowSize = 512;
-    [SerializeField] protected float baseHighPulse = 100f;
-    [SerializeField] protected float currentPulse = 0f;
+    [SerializeField] private float lowCutoff = 1.2f; 
+    [SerializeField] private float highCutoff = 4.0f; 
+    [SerializeField] private float sampleRate = 30f;
+    [SerializeField] private float lowerLimitBpm = 40.0f;
+    [SerializeField] private float upperLimitBpm = 200.0f;
+    [SerializeField] private int windowSize = 512;
+    [SerializeField] private float baseHighPulse = 100f;
+    [SerializeField] private float currentPulse = 0f;
+    
+    [SerializeField] private MethodBase[] pulseMethods;
+    
     private const int _nfftSize = 1024;
 
     private List<double[]> _rgbBuffer;
