@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class Chrom : MethodBase
 {
-    protected override double[][] ExtractPulseSignal(double[][] rgbSignals)
+    public override double[][] ExtractPulseSignal(double[][] rgbSignals)
     {
         int signalLength = rgbSignals[0].Length;
     

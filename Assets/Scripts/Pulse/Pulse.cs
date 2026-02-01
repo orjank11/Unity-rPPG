@@ -3,60 +3,72 @@ using System.Collections.Generic;
 using System.Linq;
 using MathNet.Filtering;
 using Window = MathNet.Numerics.Window;
-
 using MathNet.Numerics.IntegralTransforms;
 using UnityEngine;
 
 public class Pulse : MonoBehaviour
 {
-    [SerializeField] private float lowCutoff = 1.2f; 
-    [SerializeField] private float highCutoff = 4.0f; 
+    [System.Serializable]
+    public class PulsePipeline
+    {
+        public string name;
+        public MethodBase method;
+        public float currentBpm;
+        
+        internal OnlineFilter filter;
+        internal List<float> bpmHistory = new List<float>();
+    }
+
+    [Header("Configuration")]
+    [SerializeField] private float lowCutoff = 0.7f;  // ~42 BPM
+    [SerializeField] private float highCutoff = 4.0f; // ~240 BPM
     [SerializeField] private float sampleRate = 30f;
     [SerializeField] private float lowerLimitBpm = 40.0f;
     [SerializeField] private float upperLimitBpm = 200.0f;
     [SerializeField] private int windowSize = 512;
-    [SerializeField] private float baseHighPulse = 100f;
-    [SerializeField] private float currentPulse = 0f;
-    
-    [SerializeField] private MethodBase[] pulseMethods;
-    
-    private const int _nfftSize = 1024;
+    [SerializeField] private float averagePulseSampleSize = 15f;
 
+    [Header("Pipelines")]
+    [SerializeField] private List<PulsePipeline> pipelines;
+
+    private const int _nfftSize = 1024;
     private List<double[]> _rgbBuffer;
     private int _bufferIndex = 0;
     private bool _isBufferFull = false;
-
-    private float averagePulseSampleSize = 30f;
-    private List<float> avgPulse = new List<float>();
-    private OnlineFilter bandpassFilter;
     
-    private readonly List<(float bpm, DateTime timestamp)> _heartRateHistory = new List<(float bpm, DateTime timestamp)>();
     private readonly float _timeWindowSeconds = 15f;
 
     protected virtual void Start()
     {
-        InitializeFilter();
-        _rgbBuffer = new List<double[]>(new double[3][]); // RGB channels
-        for (int i = 0; i < 3; i++)
-            _rgbBuffer[i] = new double[windowSize];
+        _rgbBuffer = new List<double[]>(3);
+        for (int i = 0; i < 3; i++) _rgbBuffer.Add(new double[windowSize]);
 
-        InvokeRepeating(nameof(ProcessPulseAndEstimateHeartRate), 0, 1);
+        foreach (var pipe in pipelines)
+        {
+            if (pipe.method == null) continue;
+
+            if (string.IsNullOrEmpty(pipe.name)) 
+                pipe.name = pipe.method.GetType().Name;
+
+            pipe.filter = OnlineFilter.CreateBandpass(
+                ImpulseResponse.Infinite,
+                sampleRate,
+                lowCutoff,
+                highCutoff,
+                2);
+                
+            pipe.bpmHistory = new List<float>();
+        }
+
+        InvokeRepeating(nameof(ProcessPulseAndEstimateHeartRate), 1f, 0.5f);
     }
+    
+    void OnEnable() => FaceDetection.OnRoiExtracted += ProcessFrame;
+    void OnDisable() => FaceDetection.OnRoiExtracted -= ProcessFrame;
 
-    private void InitializeFilter()
+    // --- DATA INGESTION (Unchanged) ---
+    public virtual void ProcessFrame(Color32[] pixels)
     {
-        bandpassFilter = OnlineFilter.CreateBandpass(
-            ImpulseResponse.Infinite,
-            sampleRate,
-            lowCutoff,
-            highCutoff,
-            3);
-    }
-
-    public virtual void ProcessFrame(Texture2D texture)
-    {
-        Color32[] pixels = texture.GetPixels32();
-        
         long rSum = 0, gSum = 0, bSum = 0;
         foreach (Color32 pixel in pixels)
         {
@@ -65,10 +77,10 @@ public class Pulse : MonoBehaviour
             bSum += pixel.b;
         }
 
-        int pixelCount = pixels.Length;
-        _rgbBuffer[0][_bufferIndex] = bSum / (double)pixelCount; // B
-        _rgbBuffer[1][_bufferIndex] = gSum / (double)pixelCount; // G
-        _rgbBuffer[2][_bufferIndex] = rSum / (double)pixelCount; // R
+        int count = pixels.Length;
+        _rgbBuffer[0][_bufferIndex] = bSum / (double)count;
+        _rgbBuffer[1][_bufferIndex] = gSum / (double)count;
+        _rgbBuffer[2][_bufferIndex] = rSum / (double)count;
 
         _bufferIndex++;
         if (_bufferIndex >= windowSize)
@@ -78,61 +90,73 @@ public class Pulse : MonoBehaviour
         }
     }
 
-
     protected void ProcessPulseAndEstimateHeartRate()
     {
+        if (!_isBufferFull) return;
 
-        if (_isBufferFull)
+        double[][] sortedRgb = new double[3][];
+        for (int i = 0; i < 3; i++)
         {
-            double[][] rgbSignals = new double[3][];
-            for (int i = 0; i < 3; i++)
-                rgbSignals[i] = _rgbBuffer[i];
+            sortedRgb[i] = new double[windowSize];
+            Array.Copy(_rgbBuffer[i], _bufferIndex, sortedRgb[i], 0, windowSize - _bufferIndex);
+            Array.Copy(_rgbBuffer[i], 0, sortedRgb[i], windowSize - _bufferIndex, _bufferIndex);
+        }
 
-            ExtractPulseSignal(rgbSignals);
+        foreach (var pipe in pipelines)
+        {
+            if (pipe.method == null) continue;
+
+            double[][] rawSignals = pipe.method.ExtractPulseSignal(sortedRgb);
+            
+            double[][] processedSignals = ProcessSignal(rawSignals, pipe.filter);
+
+            float bpm = EstimateHeartRate(processedSignals, pipe.bpmHistory);
+
+            if (bpm > lowerLimitBpm && bpm < upperLimitBpm)
+            {
+                pipe.currentBpm = bpm;
+                Debug.Log($"Method: <b>{pipe.name}</b> | BPM: {bpm:F1}");
+            }
         }
     }
 
-    private void ExtractPulseSignal(double[][] rgbSignals)
+    private double[][] ProcessSignal(double[][] rawSignal, OnlineFilter filter)
     {
-        /*
-           float bpm = EstimateHeartRate(signal);
-           UpdateHeartRate(bpm);
-         */
-    }
-
-    private double[][] ProcessSignal(double[][] rawSignal)
-    {
-
         int numChannels = rawSignal.Length;
-        double[][] processedSignals = new double[numChannels][];
+        double[][] processed = new double[numChannels][];
 
         for (int i = 0; i < numChannels; i++)
         {
-            double[] signal = rawSignal[i];
+            double mean = rawSignal[i].Average();
+            double[] norm = rawSignal[i].Select(x => x - mean).ToArray();
+            
+            double[] detrended = DetrendSignal(norm);
 
-            double mean = signal.Average();
-            double[] normalized = signal.Select(x => x - mean).ToArray();
-
-            double stdDev = Math.Sqrt(normalized.Select(x => x * x).Average());
-            if (stdDev > 0)
-            {
-                normalized = normalized.Select(x => x / stdDev).ToArray();
-            }
-
-            double[] detrended = DetrendSignal(normalized);
-
-            double[] filtered = bandpassFilter.ProcessSamples(detrended);
+            double[] filtered = filter.ProcessSamples(detrended);
 
             double[] window = Window.Hamming(filtered.Length);
-            double[] windowed = filtered.Zip(window, (s, w) => s * w).ToArray();
-
-            processedSignals[i] = windowed;
-
+            processed[i] = filtered.Zip(window, (s, w) => s * w).ToArray();
         }
-
-        return processedSignals;
+        return processed;
     }
     
+    private float EstimateHeartRate(double[][] signals, List<float> history)
+    {
+        float[] bpmEstimates = new float[signals.Length];
+        for (int i = 0; i < signals.Length; i++)
+        {
+            double[] psd = CalculateWelchPSD(signals[i]);
+            bpmEstimates[i] = CalculateBPMFromPSD(psd);
+        }
+
+        float instantBpm = bpmEstimates.Average();
+
+        history.Add(instantBpm);
+        if (history.Count > averagePulseSampleSize) history.RemoveAt(0);
+
+        return history.Average();
+    }
+
     private double[] DetrendSignal(double[] signal)
     {
         int n = signal.Length;
@@ -159,32 +183,6 @@ public class Pulse : MonoBehaviour
 
         return detrended;
     }
-
-    private float EstimateHeartRate(double[][] signals)
-    {
-        int numChannels = signals.Length;
-        float[] bpmEstimates = new float[numChannels];
-
-        for (int i = 0; i < numChannels; i++)
-        {
-            double[] psd = CalculateWelchPSD(signals[i]);
-            bpmEstimates[i] = CalculateBPMFromPSD(psd);
-        }
-
-        float currentPulse = bpmEstimates.Average();
-
-        avgPulse.Add(currentPulse);
-
-        if (avgPulse.Count > averagePulseSampleSize)
-        {
-            avgPulse.RemoveAt(0);
-        }
-
-        float averagePulseValue = avgPulse.Average();
-
-        return averagePulseValue;
-    }
-
 
 
     private double[] CalculateWelchPSD(double[] signal)
@@ -275,12 +273,4 @@ public class Pulse : MonoBehaviour
         return bpm;
     }
 
-    void UpdateHeartRate(float bpm)
-    {
-        DateTime currentTime = DateTime.Now;
-        currentPulse = bpm;
-        _heartRateHistory.Add((bpm, currentTime));
-        _heartRateHistory.RemoveAll(item => (currentTime - item.timestamp).TotalSeconds > _timeWindowSeconds);
-      
-    }
 }

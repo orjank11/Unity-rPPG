@@ -4,7 +4,7 @@ using UnityEngine;
 
 public abstract class MethodBase : MonoBehaviour
 {
-    protected abstract double[][] ExtractPulseSignal(double[][] rgbSignals);
+    public abstract double[][] ExtractPulseSignal(double[][] rgbSignals);
     
     protected double StandardDeviation(double[] values)
     {

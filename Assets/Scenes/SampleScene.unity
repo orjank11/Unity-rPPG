@@ -394,9 +394,8 @@ GameObject:
   - component: {fileID: 786284267}
   - component: {fileID: 786284266}
   - component: {fileID: 786284265}
-  - component: {fileID: 786284268}
-  - component: {fileID: 786284269}
   - component: {fileID: 786284274}
+  - component: {fileID: 786284268}
   - component: {fileID: 786284273}
   - component: {fileID: 786284272}
   - component: {fileID: 786284271}
@@ -421,7 +420,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Ui
   webcam: {fileID: 786284268}
-  visualizer: {fileID: 786284269}
 --- !u!114 &786284266
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -472,49 +470,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 54d6b9b9e5c6d4c1c977b1341a69a778, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Webcam
-  requestedDeviceName: 
-  requestedWidth: 640
-  requestedHeight: 480
-  requestedFPS: 30
-  requestedIsFrontFacing: 0
-  autoPlayAfterInitialize: 1
-  settingsFPS: 30
-  flipHorizontal: 0
-  flipVertical: 0
-  onInitialized:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 786284268}
-        m_TargetAssemblyTypeName: Webcam, Assembly-CSharp
-        m_MethodName: Play
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-  onErrorOccurred:
-    m_PersistentCalls:
-      m_Calls: []
---- !u!114 &786284269
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 786284264}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a795fed0ab9e34639befcafc3fcfb3ea, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Neural.Visualizer
-  source: {fileID: 786284268}
-  threshold: 0.5
-  resources: {fileID: 11400000, guid: e6dbf9b743c81464fb3d2e9ccbe09dc4, type: 2}
-  faceTextureSize: 256
 --- !u!114 &786284270
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -569,12 +524,17 @@ MonoBehaviour:
   lowerLimitBpm: 40
   upperLimitBpm: 200
   windowSize: 512
-  baseHighPulse: 100
-  currentPulse: 0
-  pulseMethods:
-  - {fileID: 786284272}
-  - {fileID: 786284271}
-  - {fileID: 786284270}
+  averagePulseSampleSize: 30
+  pipelines:
+  - name: GREEN
+    method: {fileID: 786284272}
+    currentBpm: 0
+  - name: CHROM
+    method: {fileID: 786284271}
+    currentBpm: 0
+  - name: POS
+    method: {fileID: 786284270}
+    currentBpm: 0
 --- !u!114 &786284274
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -584,11 +544,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 786284264}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 640e0203400d149668f09673b48bb729, type: 3}
+  m_Script: {fileID: 11500000, guid: 8a07f1a3d733d4ea992c3d268717b6dc, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Roi
-  pulse: {fileID: 786284273}
-  fps: 30
+  m_EditorClassIdentifier: Assembly-CSharp::FaceDetection
+  faceDetector: {fileID: 5022602860645237092, guid: e6f1db363daf149f59d010985a28cc30, type: 3}
+  anchorsCsv: {fileID: 4900000, guid: bd800cb0836884ae8970bd16cd3fb8e8, type: 3}
+  uiDocument: {fileID: 786284266}
+  cameraReversed: 0
+  dynamicSizing: 0
+  iouThreshold: 0.3
+  scoreThreshold: 0.5
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0

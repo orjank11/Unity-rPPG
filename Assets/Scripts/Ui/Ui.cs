@@ -1,6 +1,5 @@
 using System;
 using System.Collections;
-using Neural;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -21,7 +20,7 @@ public class Ui : MonoBehaviour
     private Label _posResult;
     
     [SerializeField] Webcam webcam;
-    [SerializeField] Visualizer visualizer;
+   //  [SerializeField] Visualizer visualizer;
 
     private bool _hasImage = false;
     void Awake()
@@ -46,7 +45,7 @@ public class Ui : MonoBehaviour
         yield return new WaitForSeconds(1f);
     
         webcam.Initialize(_webcamImage);
-        visualizer.Initialize(_roiImage);
+      //   visualizer.Initialize(_roiImage);
     }
     
     // Update is called once per frame

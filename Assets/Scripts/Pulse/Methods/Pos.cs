@@ -12,7 +12,7 @@ public class Pos : MethodBase
         { -2, 1, 1 } 
     };
 
-    protected override double[][] ExtractPulseSignal(double[][] rgbSignals)
+    public override double[][] ExtractPulseSignal(double[][] rgbSignals)
     {
         int windowLength = (int)(1.6 * SampleRate);
         int totalSamples = rgbSignals[0].Length;
