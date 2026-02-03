@@ -2,7 +2,7 @@ using System;
 using Unity.Mathematics;
 using Unity.InferenceEngine;
 using UnityEngine;
-using UnityEngine.UIElements;
+using UnityEngine.UI;
 
 public class FaceDetection : MonoBehaviour
 {
@@ -10,13 +10,22 @@ public class FaceDetection : MonoBehaviour
 
     [SerializeField] private ModelAsset faceDetector;
     [SerializeField] private TextAsset anchorsCsv;
-    [SerializeField] private UIDocument uiDocument;
 
     [Header("Settings")] 
     [SerializeField] private bool cameraReversed = false;
     [SerializeField] private bool dynamicSizing = false;
     
-    private VisualElement _roiBox;
+    [Header("Extraction Adjustments")]
+    [SerializeField] private bool flipXExtraction = false; 
+    [SerializeField] private bool flipYExtraction = false;
+    [SerializeField] private bool debugSize = true;
+    
+    [Header("Results")]
+    [SerializeField] private RawImage roiBox;
+    [SerializeField] private RawImage roiResultImage;
+    [SerializeField] private RectTransform cameraFeedRect;
+    [SerializeField] private Vector2 offset = new Vector2(0f, 0.25f);
+    
     private Worker _faceDetectorWorker;
     private Tensor<float> _detectorInput;
     private float[,] _mAnchors;
@@ -28,6 +37,8 @@ public class FaceDetection : MonoBehaviour
     
     public float iouThreshold = 0.3f;
     public float scoreThreshold = 0.5f;
+
+    private Texture2D _roiTexture;
 
     void Awake()
     {
@@ -50,23 +61,6 @@ public class FaceDetection : MonoBehaviour
         faceDetectorModel = graph.Compile(idx_scores_boxes.Item1, idx_scores_boxes.Item2, idx_scores_boxes.Item3);
     
         _faceDetectorWorker = new Worker(faceDetectorModel, BackendType.GPUCompute);
-        
-        if (uiDocument != null)
-        {
-            var root = uiDocument.rootVisualElement;
-            _roiBox = new VisualElement();
-            _roiBox.style.position = Position.Absolute;
-            _roiBox.style.borderBottomWidth = 2;
-            _roiBox.style.borderTopWidth = 2;
-            _roiBox.style.borderLeftWidth = 2;
-            _roiBox.style.borderRightWidth = 2;
-            _roiBox.style.borderBottomColor = Color.green;
-            _roiBox.style.borderTopColor = Color.green;
-            _roiBox.style.borderLeftColor = Color.green;
-            _roiBox.style.borderRightColor = Color.green;
-            _roiBox.style.display = DisplayStyle.None;
-            root.Add(_roiBox);
-        }
     }
 
     void OnEnable() => Webcam.OnFrameReady += ProcessFrame;
@@ -106,37 +100,30 @@ public class FaceDetection : MonoBehaviour
 
     private void CalculateRoi(Tensor<int> indices, Tensor<float> boxes, float2x3 M, WebCamTexture frame)
     {
-        if (indices.shape.length == 0)
-        {
-            if (_roiBox != null) _roiBox.style.display = DisplayStyle.None;
-            return;
-        }
-
         int i = 0; 
         int anchorIdx = indices[i];
-        
         float2 anchor = new float2(_mAnchors[anchorIdx, 0], _mAnchors[anchorIdx, 1]) * DetectorInputSize;
 
-        float2 rawRightEye = new float2(boxes[0, i, 4], boxes[0, i, 5]);
-        float2 rawLeftEye  = new float2(boxes[0, i, 6], boxes[0, i, 7]);
-        float2 rawNose     = new float2(boxes[0, i, 8], boxes[0, i, 9]);
+        float2 boxCenterDelta = new float2(boxes[0, i, 0], boxes[0, i, 1]);
+        float2 boxSizeRaw     = new float2(boxes[0, i, 2], boxes[0, i, 3]);
 
-        float2 rightEye = BlazeUtils.mul(M, anchor + rawRightEye);
-        float2 leftEye  = BlazeUtils.mul(M, anchor + rawLeftEye);
-        float2 nose     = BlazeUtils.mul(M, anchor + rawNose);
+        float2 inputCenter = anchor + boxCenterDelta;
+    
+        float2 roiCenter = BlazeUtils.mul(M, inputCenter);
 
-        float2 eyeCenter = (rightEye + leftEye) * 0.5f;
-        float2 faceDownDir = nose - eyeCenter; 
-        float faceScale = math.length(faceDownDir); 
-        float2 faceUpDir = -math.normalize(faceDownDir);
+        float2 inputCorner = inputCenter + (boxSizeRaw * 0.5f);
+        float2 roiCorner   = BlazeUtils.mul(M, inputCorner);
+        float2 faceBoxPixelSize = math.abs(roiCorner - roiCenter) * 2.0f;
 
-        float2 foreheadCenter = eyeCenter + (faceUpDir * faceScale * 1.8f);
-        
-        float2 roiSize = dynamicSizing ? new float2(faceScale * 2.5f, faceScale * 1.0f) : new float2(100f, 100f);
+        float2 calculatedOffset = faceBoxPixelSize * new float2(offset.x, offset.y);
+        float2 finalCenter = roiCenter + calculatedOffset;
 
-        UpdateRoiUI(foreheadCenter, roiSize);
-        
-        ExtractAndSendRoi(frame, foreheadCenter, roiSize);
+        float2 roiSize = dynamicSizing 
+            ? faceBoxPixelSize * new float2(0.5f, 0.2f) 
+            : new float2(100f, 100f);
+
+        UpdateRoiUI(finalCenter, roiSize);
+        ExtractAndSendRoi(frame, finalCenter, roiSize);
     }
 
     private void ExtractAndSendRoi(WebCamTexture frame, float2 center, float2 size)
@@ -148,49 +135,71 @@ public class FaceDetection : MonoBehaviour
 
         startX = Mathf.Clamp(startX, 0, frame.width - 1);
         startY = Mathf.Clamp(startY, 0, frame.height - 1);
-
         if (startX + cropW > frame.width) cropW = frame.width - startX;
         if (startY + cropH > frame.height) cropH = frame.height - startY;
 
         if (cropW <= 0 || cropH <= 0) return;
 
         Color32[] fullPixels = frame.GetPixels32();
-        
         Color32[] croppedPixels = new Color32[cropW * cropH];
 
         for (int y = 0; y < cropH; y++)
         {
-            int sourceIndex = (startY + y) * frame.width + startX;
+            int srcY = flipYExtraction ? (startY + (cropH - 1 - y)) : (startY + y);
             
-            int destIndex = y * cropW;
+            for (int x = 0; x < cropW; x++)
+            {
+                int srcX = flipXExtraction ? (startX + (cropW - 1 - x)) : (startX + x);
 
-            Array.Copy(fullPixels, sourceIndex, croppedPixels, destIndex, cropW);
+                int sourceIndex = srcY * frame.width + srcX;
+                int destIndex = y * cropW + x;
+
+                if (sourceIndex >= 0 && sourceIndex < fullPixels.Length)
+                {
+                    croppedPixels[destIndex] = fullPixels[sourceIndex];
+                }
+            }
         }
 
         OnRoiExtracted?.Invoke(croppedPixels);
+        DrawImage(croppedPixels, cropW, cropH);
     }
 
+    private void DrawImage(Color32[] pixels, int width, int height)
+    {   
+        if (roiResultImage == null) return;
+    
+        // Initialize or Resize Texture if needed
+        if (_roiTexture == null || _roiTexture.width != width || _roiTexture.height != height)
+        {
+            _roiTexture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            roiResultImage.texture = _roiTexture;
+        }
+
+        _roiTexture.SetPixels32(pixels);
+        _roiTexture.Apply();
+    }
+    
     private void UpdateRoiUI(float2 centerPixels, float2 sizePixels)
     {
-        if (_roiBox == null || uiDocument == null) return;
+        if (roiBox == null || cameraFeedRect == null) return;
 
-        float uvX = (centerPixels.x / _textureWidth);
+        roiBox.gameObject.SetActive(true);
+
+        float uvX = centerPixels.x / _textureWidth;
         float uvY = centerPixels.y / _textureHeight;
         float uvW = sizePixels.x / _textureWidth;
         float uvH = sizePixels.y / _textureHeight;
 
-        var uiRoot = uiDocument.rootVisualElement.contentRect;
-        float panelW = uiRoot.width;
-        float panelH = uiRoot.height;
+        float panelW = cameraFeedRect.rect.width;
+        float panelH = cameraFeedRect.rect.height;
 
-        _roiBox.style.width  = uvW * panelW;
-        _roiBox.style.height = uvH * panelH;
-                
-        _roiBox.style.left   = (uvX * panelW) - (_roiBox.style.width.value.value / 2);
-                
-        _roiBox.style.top    = ((1 - uvY) * panelH) - (_roiBox.style.height.value.value / 2);
-                
-        _roiBox.style.display = DisplayStyle.Flex;
+        roiBox.rectTransform.sizeDelta = new Vector2(uvW * panelW, uvH * panelH);
+
+        float anchoredX = (uvX - 0.5f) * panelW;
+        float anchoredY = (uvY - 0.5f) * panelH;
+
+        roiBox.rectTransform.anchoredPosition = new Vector2(anchoredX, anchoredY);
     }
 
     void OnDestroy()

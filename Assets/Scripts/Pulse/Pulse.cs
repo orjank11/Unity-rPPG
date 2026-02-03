@@ -4,7 +4,9 @@ using System.Linq;
 using MathNet.Filtering;
 using Window = MathNet.Numerics.Window;
 using MathNet.Numerics.IntegralTransforms;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class Pulse : MonoBehaviour
 {
@@ -14,11 +16,12 @@ public class Pulse : MonoBehaviour
         public string name;
         public MethodBase method;
         public float currentBpm;
-        
+        public TMP_Text value;
+
         internal OnlineFilter filter;
         internal List<float> bpmHistory = new List<float>();
     }
-
+    
     [Header("Configuration")]
     [SerializeField] private float lowCutoff = 0.7f;  // ~42 BPM
     [SerializeField] private float highCutoff = 4.0f; // ~240 BPM
@@ -30,7 +33,11 @@ public class Pulse : MonoBehaviour
 
     [Header("Pipelines")]
     [SerializeField] private List<PulsePipeline> pipelines;
-
+    
+    [Header("UI")]
+    [SerializeField] private RawImage roiResultImage;
+        
+        
     private const int _nfftSize = 1024;
     private List<double[]> _rgbBuffer;
     private int _bufferIndex = 0;
@@ -42,13 +49,15 @@ public class Pulse : MonoBehaviour
     {
         _rgbBuffer = new List<double[]>(3);
         for (int i = 0; i < 3; i++) _rgbBuffer.Add(new double[windowSize]);
-
+        
         foreach (var pipe in pipelines)
         {
             if (pipe.method == null) continue;
 
-            if (string.IsNullOrEmpty(pipe.name)) 
+            if (string.IsNullOrEmpty(pipe.name))
+            {
                 pipe.name = pipe.method.GetType().Name;
+            }
 
             pipe.filter = OnlineFilter.CreateBandpass(
                 ImpulseResponse.Infinite,
@@ -66,7 +75,6 @@ public class Pulse : MonoBehaviour
     void OnEnable() => FaceDetection.OnRoiExtracted += ProcessFrame;
     void OnDisable() => FaceDetection.OnRoiExtracted -= ProcessFrame;
 
-    // --- DATA INGESTION (Unchanged) ---
     public virtual void ProcessFrame(Color32[] pixels)
     {
         long rSum = 0, gSum = 0, bSum = 0;
@@ -115,7 +123,7 @@ public class Pulse : MonoBehaviour
             if (bpm > lowerLimitBpm && bpm < upperLimitBpm)
             {
                 pipe.currentBpm = bpm;
-                Debug.Log($"Method: <b>{pipe.name}</b> | BPM: {bpm:F1}");
+                pipe.value.text = bpm.ToString("F1");
             }
         }
     }

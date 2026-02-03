@@ -35,19 +35,6 @@ public class Ui : MonoBehaviour
         _posResult = _document.rootVisualElement.Q<Label>("PosResult");
     }
 
-    void Start()
-    {
-        StartCoroutine(InitializeCoroutine());
-    }
-
-    IEnumerator InitializeCoroutine()
-    {
-        yield return new WaitForSeconds(1f);
-    
-        webcam.Initialize(_webcamImage);
-      //   visualizer.Initialize(_roiImage);
-    }
-    
     // Update is called once per frame
     void Update()
     {
